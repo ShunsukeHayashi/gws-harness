@@ -1,10 +1,45 @@
 # GARC Quickstart — 15分で動かす
 
-## 前提
+## このドキュメントについて
 
-- Python 3.10+
-- pip3
-- Google アカウント（Gmail / Drive 使用中）
+このガイドは GARC v0.1.0 の初期リリース向けです。
+**以下の前提条件を全て満たしてから**進めてください。途中でスキップすると認証エラーになります。
+
+---
+
+## 前提条件チェックリスト
+
+すべてに ✅ が付いてから先に進んでください。
+
+- [ ] Python 3.10 以上がインストールされている (`python3 --version`)
+- [ ] Google アカウントを持っている（Gmail / Drive が使える状態）
+- [ ] Google Cloud Console でプロジェクトを作成済み
+- [ ] 下記7つのAPIを有効化済み（[詳細手順](google-cloud-setup.md)）
+- [ ] OAuth 2.0 クライアント ID を作成し `~/.garc/credentials.json` に保存済み
+
+### 必須 API（7種）
+
+| API | サービス名 |
+|-----|---------|
+| Google Drive API | `drive.googleapis.com` |
+| Google Sheets API | `sheets.googleapis.com` |
+| Gmail API | `gmail.googleapis.com` |
+| Google Calendar API | `calendar-json.googleapis.com` |
+| Google Tasks API | `tasks.googleapis.com` |
+| Google Docs API | `docs.googleapis.com` |
+| Google People API | `people.googleapis.com` |
+
+> **APIを有効化しないと** `googleapiclient.errors.HttpError: 403 API not enabled` が出ます。
+> 有効化の詳細手順: [google-cloud-setup.md](google-cloud-setup.md)
+
+### credentials.json の配置
+
+```bash
+mkdir -p ~/.garc
+# Google Cloud Console からダウンロードした JSON を配置
+mv ~/Downloads/client_secret_*.json ~/.garc/credentials.json
+ls ~/.garc/credentials.json   # ← このファイルがないと全コマンドが失敗します
+```
 
 ---
 
@@ -28,56 +63,42 @@ garc --version
 
 ---
 
-## Step 2 — Google Cloud Console でAPIを有効化
-
-1. https://console.cloud.google.com/ にアクセス
-2. 新規プロジェクトを作成（または既存を選択）
-3. **「APIとサービス」→「APIとサービスを有効化」** で以下を有効化：
-
-| API | サービス名 |
-|-----|---------|
-| Google Drive API | `drive.googleapis.com` |
-| Google Sheets API | `sheets.googleapis.com` |
-| Gmail API | `gmail.googleapis.com` |
-| Google Calendar API | `calendar-json.googleapis.com` |
-| Google Tasks API | `tasks.googleapis.com` |
-| Google Docs API | `docs.googleapis.com` |
-| Google People API | `people.googleapis.com` |
-
-4. **「認証情報」→「OAuth 2.0 クライアントID」** を作成
-   - アプリタイプ: **デスクトップアプリ**
-   - JSONダウンロード → `~/.garc/credentials.json` に保存
-
-5. **「OAuth同意画面」** → テストユーザーに自分のGmailを追加
-
----
-
-## Step 3 — 認証
+## Step 2 — 認証
 
 ```bash
 garc auth login --profile backoffice_agent
 # → ブラウザが開く → Googleログイン → 全スコープを承認
-# → ~/.garc/token.json が生成される
+# → ~/.garc/token.json が生成される（以降は自動更新）
 
 garc auth status
-# → 付与されたスコープが表示される
+# → 付与されたスコープ一覧が表示される
 ```
+
+> **よくあるエラー**
+> - `credentials.json not found` → Step 0 の前提条件に戻ってください
+> - `Access blocked: This app's request is invalid` → OAuth同意画面でテストユーザーに自分のGmailを追加してください
 
 ---
 
-## Step 4 — ワークスペースを自動プロビジョニング
+## Step 3 — ワークスペースを自動プロビジョニング
 
 ```bash
 garc setup all
-# → Google DriveにGARC Workspaceフォルダを作成
-# → Google Sheetsにすべてのタブを作成（memory/agents/queue/heartbeat/approval...）
-# → 開示チェーンテンプレート（SOUL.md等）をDriveにアップロード
-# → ~/.garc/config.env にIDを自動保存
 ```
+
+このコマンドが実行すること:
+
+| 処理 | 結果 |
+|------|------|
+| Google Drive に `GARC Workspace` フォルダ作成 | `~/.garc/config.env` に `GARC_DRIVE_FOLDER_ID` が書き込まれる |
+| Google Sheets に全タブ作成 | memory / agents / queue / heartbeat / approval タブが作成される |
+| 開示チェーンテンプレートをアップロード | SOUL.md / USER.md / MEMORY.md / RULES.md / HEARTBEAT.md が Drive に配置される |
+
+> **所要時間**: 初回は Google API のプロビジョニングで 1〜2 分かかります。
 
 ---
 
-## Step 5 — 動作確認
+## Step 4 — 動作確認
 
 ```bash
 garc status
@@ -85,10 +106,10 @@ garc status
 
 garc bootstrap --agent main
 # → DriveからSOUL.md/USER.md/MEMORY.md等を読み込み
-# → ~/.garc/cache/workspace/main/AGENT_CONTEXT.md に統合
+# → ~/.garc/cache/workspace/main/AGENT_CONTEXT.md に統合コンテキストを出力
 
 garc auth suggest "send weekly report to manager"
-# → スコープ推定が動く
+# → gate: preview   scopes: gmail.send
 ```
 
 ---
@@ -155,10 +176,22 @@ GARC_DEFAULT_AGENT=main
 
 ## トラブルシューティング
 
-| エラー | 対処 |
-|--------|------|
-| `credentials.json not found` | Google Cloud ConsoleでOAuth認証情報をダウンロード |
-| `Token refresh failed` | `garc auth login` で再認証 |
-| `API not enabled` | Google Cloud ConsoleでAPIを有効化 |
-| `403 insufficientPermissions` | `garc auth login --profile backoffice_agent` で再認証（スコープ追加） |
-| `Sheets tab missing` | `garc setup sheets` でタブを再作成 |
+| エラー | 原因 | 対処 |
+|--------|------|------|
+| `credentials.json not found` | 認証情報ファイルが未配置 | Google Cloud ConsoleでOAuth認証情報をダウンロードし `~/.garc/credentials.json` に保存 |
+| `Token refresh failed` | トークン期限切れ | `garc auth login` で再認証 |
+| `403 API not enabled` | APIが有効化されていない | Google Cloud ConsoleでAPIを有効化（[手順](google-cloud-setup.md)） |
+| `403 insufficientPermissions` | スコープが不足 | `garc auth login --profile backoffice_agent` で再認証（全スコープを付与） |
+| `Sheets tab missing` | Sheetsが未作成 | `garc setup sheets` でタブを再作成 |
+| `Access blocked` | テストユーザー未登録 | OAuth同意画面でテストユーザーにGmailを追加 |
+
+---
+
+## v0.1.0 の既知制限
+
+このリリースで未実装の機能です。詳細は [README の Known Limitations](../README.md#known-limitations) を参照してください。
+
+- Google Chat 通知 → Gmail で代替
+- Service Account（ヘッドレス・ボット用途）→ v0.2 で対応予定
+- 監査ログ → v0.2 で対応予定
+- `garc auth revoke` → 手動で `~/.garc/token.json` を削除してください

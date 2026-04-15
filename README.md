@@ -12,16 +12,59 @@ You / Claude Code
 Google Workspace APIs (Gmail · Calendar · Drive · Sheets · Tasks · People)
 ```
 
-## Core concepts
+> **This is an initial release (v0.1.0).** Core operations work end-to-end.
+> Known limitations and planned improvements are listed in [Known Limitations](#known-limitations) below.
 
-| Concept | What it does |
-|---------|-------------|
-| **`auth suggest`** | Infers minimum OAuth scopes from a natural-language task description |
-| **Execution gates** | `none` (read-only) / `preview` (writes, confirm first) / `approval` (financial/irreversible, requires human sign-off) |
-| **Disclosure chain** | `SOUL.md → USER.md → MEMORY.md → RULES.md → HEARTBEAT.md` stored in Google Drive, loaded on bootstrap |
-| **Queue / ingress** | Task lifecycle (`pending → in_progress → done/failed`), Gmail polling daemon auto-enqueues new emails |
-| **Agent registry** | Agent declarations (id, model, scopes) stored in Google Sheets |
-| **Memory sync** | Long-term memory round-trip with a dedicated Google Sheets tab |
+---
+
+## Prerequisites
+
+> **Complete all steps below before running any `garc` command.**
+> Skipping any step will result in authentication or API errors.
+
+### 1. Google Account
+
+A Google account with **Gmail, Drive, Sheets, Calendar, and Tasks** active.
+- Personal Gmail accounts work for development and testing.
+- Google Workspace (business) accounts work and are the primary target use case.
+
+### 2. Python 3.10+
+
+```bash
+python3 --version   # must be 3.10 or higher
+```
+
+### 3. Google Cloud Project with APIs enabled
+
+You need a Google Cloud project with the following APIs enabled:
+
+| API | Service name | Used for |
+|-----|-------------|----------|
+| Google Drive API | `drive.googleapis.com` | File storage, disclosure chain |
+| Google Sheets API | `sheets.googleapis.com` | Memory, queue, agent registry |
+| Gmail API | `gmail.googleapis.com` | Email send/receive/search |
+| Google Calendar API | `calendar-json.googleapis.com` | Event management |
+| Google Tasks API | `tasks.googleapis.com` | Task management |
+| Google Docs API | `docs.googleapis.com` | Document creation |
+| Google People API | `people.googleapis.com` | Contacts, directory search |
+
+Step-by-step setup: [`docs/google-cloud-setup.md`](docs/google-cloud-setup.md)
+
+### 4. OAuth 2.0 Credentials file
+
+1. In [Google Cloud Console](https://console.cloud.google.com/) → **Credentials** → **Create OAuth 2.0 Client ID**
+2. Application type: **Desktop app**
+3. Download JSON → save as **`~/.garc/credentials.json`**
+
+```bash
+mkdir -p ~/.garc
+mv ~/Downloads/client_secret_*.json ~/.garc/credentials.json
+```
+
+> Without `~/.garc/credentials.json`, all `garc` commands will fail with
+> `FileNotFoundError: credentials.json not found`.
+
+---
 
 ## Quickstart
 
@@ -36,48 +79,33 @@ source ~/.zshrc
 garc --version   # → garc 0.1.0
 ```
 
-### 2. Enable Google Cloud APIs
-
-In [Google Cloud Console](https://console.cloud.google.com/), enable:
-
-| API | Service name |
-|-----|-------------|
-| Google Drive API | `drive.googleapis.com` |
-| Google Sheets API | `sheets.googleapis.com` |
-| Gmail API | `gmail.googleapis.com` |
-| Google Calendar API | `calendar-json.googleapis.com` |
-| Google Tasks API | `tasks.googleapis.com` |
-| Google Docs API | `docs.googleapis.com` |
-| Google People API | `people.googleapis.com` |
-
-Create an **OAuth 2.0 Client ID** (Desktop app) → download JSON → save as `~/.garc/credentials.json`.
-
-See [`docs/google-cloud-setup.md`](docs/google-cloud-setup.md) for step-by-step instructions.
-
-### 3. Authenticate
+### 2. Authenticate
 
 ```bash
 garc auth login --profile backoffice_agent
 # Opens browser → Google login → authorize all scopes
+# Writes ~/.garc/token.json
 garc auth status
 ```
 
-### 4. Provision workspace
+### 3. Provision workspace
 
 ```bash
 garc setup all
 # Creates GARC Workspace folder in Google Drive
-# Creates Google Sheets with all tabs (memory/agents/queue/heartbeat/approval/…)
-# Uploads disclosure chain templates to Drive
-# Writes IDs to ~/.garc/config.env
+# Creates Google Sheets with all tabs (memory/agents/queue/heartbeat/approval)
+# Uploads disclosure chain templates (SOUL.md / USER.md / MEMORY.md / RULES.md)
+# Writes folder/sheet IDs to ~/.garc/config.env
 ```
 
-### 5. Verify
+### 4. Verify
 
 ```bash
 garc status
 garc bootstrap --agent main
 ```
+
+---
 
 ## Usage
 
@@ -88,6 +116,7 @@ garc gmail inbox --unread
 garc gmail search "from:alice@co.com subject:invoice" --max 10
 garc gmail send --to boss@co.com --subject "Weekly report" --body "..."
 garc gmail read <message_id>
+garc gmail draft --to boss@co.com --subject "Draft" --body "..."
 ```
 
 ### Google Calendar
@@ -124,8 +153,17 @@ garc sheets append --sheet memory --values '["main","2026-04-20","key decision",
 ```bash
 garc task list
 garc task create "Write Q1 report" --due 2026-04-30
+garc task done <task_id>
 garc people lookup "Alice Smith"
 garc people directory "engineering"
+```
+
+### Memory sync
+
+```bash
+garc memory pull              # Download from Google Sheets
+garc memory push "note text"  # Append to memory tab
+garc memory search "keyword"
 ```
 
 ### Queue / Ingress (Claude Code bridge)
@@ -164,13 +202,15 @@ garc approve list
 garc approve act <id> --action approve
 ```
 
+---
+
 ## Architecture
 
 ```
 ~/.garc/
-  credentials.json      # OAuth client credentials (Google Cloud Console)
-  token.json            # OAuth user token (garc auth login)
-  config.env            # GARC_DRIVE_FOLDER_ID, GARC_SHEETS_ID, …
+  credentials.json      # OAuth client credentials (Google Cloud Console) ← YOU PROVIDE THIS
+  token.json            # OAuth user token (garc auth login generates this)
+  config.env            # GARC_DRIVE_FOLDER_ID, GARC_SHEETS_ID, … (garc setup all generates this)
   cache/
     workspace/<agent>/
       SOUL.md / USER.md / MEMORY.md / RULES.md / HEARTBEAT.md
@@ -187,6 +227,46 @@ garc approve act <id> --action approve
 | `none` | Low — reads | Execute immediately |
 | `preview` | Medium — external writes | Show plan, confirm first |
 | `approval` | High — financial / irreversible | Create approval request, block until approved |
+
+---
+
+## Known Limitations
+
+The following are known gaps in v0.1.0. They are planned for future releases.
+
+| Limitation | Impact | Planned |
+|-----------|--------|---------|
+| **Google Chat not implemented** | No push notifications to Chat spaces. Gmail is used as fallback for approval notifications | v0.2 |
+| **Service Account / Domain-wide Delegation not supported** | Enterprise deployments requiring headless bot identity (not user OAuth) are not yet supported | v0.2 |
+| **No audit log** | Operations are not logged to Admin SDK / Google Cloud Logging | v0.2 |
+| **`garc auth revoke` not implemented** | Token revocation requires manual deletion of `~/.garc/token.json` | v0.2 |
+| **Existing Google Docs editing limited** | `drive create-doc` creates new docs; editing body of existing Docs is not implemented | v0.3 |
+| **Google Forms → auto-enqueue not implemented** | Form submissions cannot automatically create queue tasks | v0.3 |
+| **Single organization only** | Multi-tenant (multiple Google Workspace domains) is not supported | v0.3+ |
+| **macOS only (daemon)** | `daemon install` generates a macOS launchd plist. Linux systemd not yet supported | v0.3 |
+
+---
+
+## Roadmap
+
+### v0.2 — Enterprise hardening
+- Google Chat API integration (`garc chat send`)
+- Service Account support (`garc auth login --service-account`)
+- Audit log (`garc audit log`)
+- `garc auth revoke`
+
+### v0.3 — Workflow expansion
+- Google Docs body editing
+- Google Forms → ingress pipeline
+- Linux systemd daemon support
+- GCP Secret Manager for credentials
+
+### v0.4 — Multi-agent
+- Cross-agent task delegation
+- Agent-to-agent approval chains
+- Multi-organization support
+
+---
 
 ## Repository layout
 
@@ -213,6 +293,8 @@ docs/
   quickstart.md / google-cloud-setup.md / garc-architecture.md / garc-vs-larc.md
 .claude/skills/garc-runtime/SKILL.md   Claude Code skill
 ```
+
+---
 
 ## Relation to LARC
 
