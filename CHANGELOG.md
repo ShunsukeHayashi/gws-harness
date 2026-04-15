@@ -69,21 +69,45 @@ features are deferred to v0.2 (see Known Limitations in README).
 
 ---
 
+## [0.2.0] — 2026-04-15 — Enterprise Hardening + Workflow Expansion
+
+All 17 findings from the v0.1.0 operational readiness audit have been resolved.
+
+### Fixed (P0 — Blockers)
+
+- **agent register**: upsert by `agent_id` — re-running no longer creates duplicate rows
+- **daemon poll-once**: extracted `_gmail_poll_cycle` for synchronous single-cycle execution; `sleep 5 / kill` timeout removed
+- **requests warnings**: suppressed `urllib3` / `googleapiclient` `DeprecationWarning` on Python 3.12+; `requests` added to `requirements.txt`
+
+### Fixed (P1 — Operational risks)
+
+- **OAuth refresh**: `RefreshError` (revoked token) now deletes the stale token file and falls through to a new OAuth flow; scope coverage verified before returning cached credentials
+- **ingress stale-reset**: new `garc ingress stale-reset [--timeout N]` resets `in_progress` items stuck longer than N minutes back to `pending`
+- **Sheets empty rows**: `garc sheets trim-sheet` and `garc sheets clean-all` use `batchUpdate deleteDimension` to remove trailing empty rows
+- **Approval notification**: `garc ingress run-once` on approval-gated items sends a Gmail notification to `GARC_APPROVAL_EMAIL`; `GARC_AUTO_CONFIRM` env var added
+
+### Added (P2 — Enterprise features)
+
+- **Google Chat**: `scripts/garc-chat-helper.py` + `garc send chat send/list-spaces/list-messages`
+- **Service Account / DWD**: `garc auth service-account verify`, `GARC_IMPERSONATE_EMAIL`, `--type service-account` flag on `garc auth login`
+- **Audit log**: `audit` tab in Sheets; `garc audit list [--agent] [--since]`; async audit hook in `bin/garc`
+- **`garc auth revoke`**: POST to Google revoke endpoint + deletes local token file
+- **Google Docs editing**: `_doc_insert_text` + `append_doc` properly calls `batchUpdate insertText`; `garc drive append-doc <doc_id> --content` added
+- **KG improvements**: Drive file listing pagination fixed; shell injection in `kg.sh` eliminated; `garc-kg-query.py` extracted as a proper CLI tool
+
+### Added (P3 — Roadmap)
+
+- **Multi-tenant profiles**: `lib/profile.sh` — `garc profile list/use/add/show/remove/current`; `bin/garc` auto-loads `~/.garc/profiles/<name>/config.env` and token when `GARC_PROFILE` is set
+- **Google Forms pipeline**: `garc-forms-helper.py` + `lib/forms.sh` — `garc forms list/responses/watch`; polls Forms for new responses and enqueues them via `garc ingress`
+- **Linux systemd support**: `_daemon_install_service` detects OS (Darwin → launchd plist, Linux → `.service` + `.timer` units); `--system` flag for system-wide install
+- **Python version gate**: `pyproject.toml` (`python_requires = ">=3.10,<3.13"`); startup check in `bin/garc`; `garc doctor` diagnostics command
+
+---
+
 ## Unreleased
 
-### v0.2 — Enterprise hardening (planned)
-- Google Chat API (`garc chat send`)
-- Service Account + Domain-wide Delegation (`garc auth login --service-account`)
-- Audit log (`garc audit log`)
-- `garc auth revoke`
-
-### v0.3 — Workflow expansion (planned)
-- Google Docs body editing
-- Google Forms → ingress pipeline
-- Linux systemd daemon support
-- GCP Secret Manager integration
-
-### v0.4 — Multi-agent (planned)
-- Cross-agent task delegation
+### v0.3 — Stability (planned)
+- GCP Secret Manager integration for credential management
 - Agent-to-agent approval chains
-- Multi-organization support
+- `garc kg` — Sheets-backed persistent index (vs local JSON cache)
+- GitHub Actions CI matrix (Python 3.10 / 3.11 / 3.12)
