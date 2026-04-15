@@ -117,7 +117,13 @@ _start_gmail_poller() {
 
   # Export needed env vars for subprocess
   export GARC_DIR GARC_LIB GARC_CONFIG GARC_CACHE_DIR GARC_DEFAULT_AGENT
-  [[ -f "${GARC_CONFIG}/config.env" ]] && export $(grep -v '^#' "${GARC_CONFIG}/config.env" | xargs) 2>/dev/null || true
+  # Use set -a/+a instead of export $(xargs) to handle values with spaces
+  if [[ -f "${GARC_CONFIG:-${HOME}/.garc}/config.env" ]]; then
+    set -a
+    # shellcheck disable=SC1090
+    source "${GARC_CONFIG:-${HOME}/.garc}/config.env" 2>/dev/null || true
+    set +a
+  fi
 
   ( _gmail_poller_loop "${agent_id}" "${interval}" "${label}" "${max_msgs}" \
       >> "${GMAIL_POLLER_LOG}" 2>&1 ) &

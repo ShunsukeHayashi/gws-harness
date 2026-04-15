@@ -394,7 +394,13 @@ _ingress_context() {
   [[ -z "${queue_file}" ]] && { echo "Queue item not found: ${queue_id}" >&2; return 1; }
 
   local agent_id="${GARC_DEFAULT_AGENT:-main}"
-  local context_path="${GARC_CACHE_DIR}/workspace/${agent_id}/AGENT_CONTEXT.md"
+  local context_path="${GARC_CACHE_DIR:-${HOME}/.garc/cache}/workspace/${agent_id}/AGENT_CONTEXT.md"
+
+  if [[ ! -f "${context_path}" ]]; then
+    echo "⚠️  Agent context not found: ${context_path}" >&2
+    echo "   Run 'garc bootstrap --agent ${agent_id}' first." >&2
+    echo "   Continuing without agent context." >&2
+  fi
 
   python3 "${INGRESS_HELPER}" build-prompt \
     --queue-file "${queue_file}" \
@@ -629,13 +635,13 @@ _ingress_update_status() {
   queue_file=$(_find_queue_file "${queue_id}")
   [[ -z "${queue_file}" ]] && return 1
 
-  python3 - <<PY
-import json
-f = "${queue_file}"
+  # Pass note via argv to avoid shell→Python string injection
+  python3 - "${queue_file}" "${new_status}" "$(date -u +"%Y-%m-%dT%H:%M:%SZ")" "${note}" <<'PY'
+import json, sys
+f, new_status, updated_at, note = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4]
 q = json.loads(open(f).readline())
-q["status"]     = "${new_status}"
-q["updated_at"] = "$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
-note = """${note}"""
+q["status"]     = new_status
+q["updated_at"] = updated_at
 if note:
     q["note"] = note
 with open(f, "w") as fh:
