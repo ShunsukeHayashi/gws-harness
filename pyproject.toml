@@ -6,7 +6,7 @@ build-backend = "setuptools.backends.legacy:build"
 name = "garc-gws-agent-runtime"
 version = "0.1.0"
 description = "Google Workspace Agent Runtime CLI"
-requires-python = ">=3.10,<3.13"
+requires-python = ">=3.10"
 dependencies = [
     "google-api-python-client>=2.100.0",
     "google-auth>=2.23.0",

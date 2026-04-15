@@ -12,8 +12,8 @@ You / Claude Code
 Google Workspace APIs (Gmail · Calendar · Drive · Sheets · Tasks · People)
 ```
 
-> **This is an initial release (v0.1.0).** Core operations work end-to-end.
-> Known limitations and planned improvements are listed in [Known Limitations](#known-limitations) below.
+> **Current release: v0.2.0.** All 17 operational readiness findings resolved.
+> See [CHANGELOG](CHANGELOG.md) for full details. Known limitations and planned improvements are listed in [Known Limitations](#known-limitations) below.
 
 ---
 
