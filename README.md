@@ -1,13 +1,13 @@
-# GARC — Google Workspace Agent Runtime CLI
+# GWS Harness — Google Workspace Harness
 
-A permission-first runtime for AI agents operating on Google Workspace.
+> The business operations harness for AI agents — built on Google Workspace.
 
-GARC lets Claude Code (or any LLM agent) send emails, manage calendars, read Drive files, write Sheets, and manage tasks — with built-in **execution gates** that prevent accidental or unauthorized actions.
+GWS Harness lets Claude Code (or any LLM agent) send emails, manage calendars, read Drive files, write Sheets, and manage tasks — with built-in **execution gates** that prevent accidental or unauthorized actions.
 
 ```
 You / Claude Code
       ↓
-   GARC CLI          ← permission check, queue, context
+   GWS Harness       ← permission check, queue, context
       ↓
 Google Workspace APIs (Gmail · Calendar · Drive · Sheets · Tasks · People)
 ```
