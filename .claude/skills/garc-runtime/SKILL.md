@@ -160,12 +160,61 @@ garc drive create-folder "Project Alpha" --parent-id 1xxxxx
 
 Gate: **preview**
 
+### Append or insert into an existing Doc
+
+```bash
+garc drive append-doc <doc_id> --content "追記"
+garc drive insert-doc <doc_id> --content "正本: https://docs.google.com/document/d/abc" --after-heading "手順"
+garc drive insert-doc <doc_id> --content "末尾の段落" --at end
+garc drive insert-doc <doc_id> --content "途中" --index 10
+```
+
+Uses Docs API `documents.batchUpdate` `insertText`. Gate: **preview** (`update_document`).
+
 ### Share
 ```bash
 garc drive share 1xxxxx --email colleague@co.com --role writer
 ```
 
 Gate: **approval** (sharing = external visibility)
+
+---
+
+## Google Forms
+
+### Read
+```bash
+garc forms get <form_id>
+```
+
+Gate: **none**
+
+### Create an unpublished draft
+```bash
+garc forms create --title "SOP check" --description "Draft"
+```
+
+Gate: **preview**. This calls `forms.create` with `unpublished=true`. It does not publish the form and does not call `setPublishSettings`.
+
+### Update title, description, or items
+```bash
+garc forms update <form_id> --title "SOP check" --description "Updated" --add-item "Owner"
+garc forms update <form_id> --item-index 0 --item-title "Amount"
+```
+
+Gate: **preview**. Does not change publish state or responder access.
+
+### Publish or change responder access — human GO only
+
+```bash
+garc forms publish <form_id>                 # REFUSES (exit 2). No API call.
+garc forms publish <form_id> --go            # only after an explicit human GO
+garc forms publish <form_id> --go --published true --accepting false
+```
+
+Gate: **approval**. Publishing, unpublishing, and changing whether the form accepts responses are **human-GO-only**. Do not pass `--go` yourself. `--confirm` is not a substitute. `forms.list` / `forms.responses` / `forms.watch` are unchanged and do not publish the form.
+
+Required API: `forms.googleapis.com` (reported by `garc status` and `garc bootstrap` when a token is present).
 
 ---
 
@@ -256,6 +305,11 @@ garc agent show main         # Show specific agent details
 | Delete event | approval | calendar |
 | Read Drive | none | drive.readonly |
 | Upload to Drive | preview | drive.file |
+| Append / insert Doc text | preview | documents + drive.file |
+| Read a Form | none | forms.body.readonly |
+| Create / update a Form draft | preview | forms.body |
+| Publish a Form or change responder access | approval (human `--go` only) | forms.body |
+| Read Form responses | none | forms.responses.readonly |
 | Delete/share Drive | approval | drive |
 | Read Sheets | none | spreadsheets.readonly |
 | Write Sheets | preview | spreadsheets |

@@ -148,6 +148,32 @@ platform: Google Workspace
 }
 
 
+# A non-existent form id is enough to tell "API enabled" (404) from
+# "API disabled" (accessNotConfigured). No form is created.
+FORMS_PROBE_ID = "garc-api-probe"
+
+
+def probe_forms_api(svc) -> str:
+    """Return a status string for Forms API enablement. Never publishes a form."""
+    try:
+        svc.forms().get(formId=FORMS_PROBE_ID).execute()
+        return "✅"
+    except Exception as exc:
+        msg = str(exc)
+        low = msg.lower()
+        disabled = (
+            "accessnotconfigured" in low
+            or "has not been used" in low
+            or "it is disabled" in low
+            or "service_disabled" in low
+        )
+        if disabled:
+            return f"❌ {msg[:80]}"
+        if "404" in low or "not found" in low or "400" in low:
+            return "✅"
+        return f"❌ {msg[:80]}"
+
+
 def check_api_access(config: dict) -> dict:
     """Verify all required APIs are accessible."""
     results = {}
@@ -211,6 +237,18 @@ def check_api_access(config: dict) -> dict:
         results["People API"] = "✅"
     except Exception as e:
         results["People API"] = f"❌ {str(e)[:60]}"
+
+    # Forms — enable forms.googleapis.com. 404 on the probe id means the API answered.
+    print("  Forms API service: forms.googleapis.com")
+    try:
+        svc = build_service(
+            "forms",
+            "v1",
+            scopes=["https://www.googleapis.com/auth/forms.body.readonly"],
+        )
+        results["Forms API"] = probe_forms_api(svc)
+    except Exception as e:
+        results["Forms API"] = f"❌ {str(e)[:60]}"
 
     for api, status in results.items():
         print(f"  {status} {api}")
@@ -443,6 +481,7 @@ def main():
 
     # Check only
     subparsers.add_parser("check", help="Check API access only")
+    subparsers.add_parser("check-forms", help="Check Forms API enablement only")
 
     # Provision sheets only
     subparsers.add_parser("sheets", help="Provision Sheets tabs only")
@@ -456,6 +495,21 @@ def main():
 
     if args.command == "check":
         check_api_access(config)
+        return
+
+    if args.command == "check-forms":
+        print("Forms API enablement (forms.googleapis.com):")
+        try:
+            svc = build_service(
+                "forms",
+                "v1",
+                scopes=["https://www.googleapis.com/auth/forms.body.readonly"],
+            )
+            status = probe_forms_api(svc)
+        except Exception as exc:
+            status = f"❌ {str(exc)[:80]}"
+        print(f"  {status} Forms API")
+        print("  Publish / responder access is human-GO-only: garc forms publish <id> --go")
         return
 
     if args.command == "sheets":

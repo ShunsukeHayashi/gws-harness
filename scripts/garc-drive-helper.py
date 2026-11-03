@@ -301,11 +301,94 @@ def _doc_insert_text(svc_docs, doc_id: str, text: str, append: bool = True):
 
 
 @with_retry()
-def append_doc(doc_id: str, content: str):
-    """Append text to an existing Google Doc."""
-    svc_docs = build_service("docs", "v1")
+def append_doc(doc_id: str, content: str, svc_docs=None):
+    """Append raw text to an existing Google Doc (end of the body)."""
+    svc_docs = svc_docs or build_service("docs", "v1")
     _doc_insert_text(svc_docs, doc_id, content, append=True)
     print(f"✅ Content appended to doc: {doc_id}")
+
+
+def _paragraph_text(element: dict) -> str:
+    paragraph = element.get("paragraph") or {}
+    return "".join(
+        el.get("textRun", {}).get("content", "")
+        for el in paragraph.get("elements", [])
+    )
+
+
+def plan_doc_insert(doc: dict, text: str, after_heading: str = None,
+                    at_end: bool = False, index: int = None) -> dict:
+    """Plan a single insertText that lands as its own paragraph.
+
+    Returns {"index": int, "text": str}. Does not call the API.
+    """
+    if text is None or text == "":
+        raise ValueError("text is required")
+    content = (doc.get("body") or {}).get("content") or []
+    body_end = content[-1]["endIndex"] if content else 2
+
+    if index is not None:
+        if index < 1 or index >= body_end:
+            raise ValueError(
+                f"index {index} is outside the document body (1..{body_end - 1})"
+            )
+        inserted = text if text.endswith("\n") else text + "\n"
+        return {"index": index, "text": inserted}
+
+    if after_heading:
+        match = None
+        wanted = after_heading.strip()
+        for element in content:
+            if _paragraph_text(element).strip() == wanted:
+                match = element
+                break
+        if match is None:
+            raise LookupError(after_heading)
+        insert_at = match["endIndex"]
+        if insert_at >= body_end:
+            # Heading is the last paragraph. Insert before its trailing newline
+            # and open a new paragraph with a leading newline.
+            body = text[1:] if text.startswith("\n") else text
+            if body.endswith("\n"):
+                body = body[:-1]
+            return {"index": max(body_end - 1, 1), "text": "\n" + body}
+        inserted = text if text.endswith("\n") else text + "\n"
+        return {"index": insert_at, "text": inserted}
+
+    if at_end:
+        body = text[:-1] if text.endswith("\n") else text
+        if not body.startswith("\n"):
+            body = "\n" + body
+        return {"index": max(body_end - 1, 1), "text": body}
+
+    raise ValueError("specify after_heading, at_end, or index")
+
+
+@with_retry()
+def insert_doc(doc_id: str, content: str, after_heading: str = None,
+               at_end: bool = False, index: int = None, svc_docs=None):
+    """Insert a paragraph after a heading, at an index, or at the end."""
+    svc_docs = svc_docs or build_service("docs", "v1")
+    doc = svc_docs.documents().get(documentId=doc_id).execute()
+    try:
+        plan = plan_doc_insert(
+            doc, content, after_heading=after_heading, at_end=at_end, index=index
+        )
+    except LookupError:
+        print(f"Heading not found: {after_heading}", file=sys.stderr)
+        raise SystemExit(1)
+    except ValueError as exc:
+        print(str(exc), file=sys.stderr)
+        raise SystemExit(1)
+
+    svc_docs.documents().batchUpdate(
+        documentId=doc_id,
+        body={"requests": [
+            {"insertText": {"location": {"index": plan["index"]}, "text": plan["text"]}}
+        ]},
+    ).execute()
+    print(f"✅ Paragraph inserted into doc: {doc_id} at index {plan['index']}")
+    return plan
 
 
 @with_retry()
@@ -507,6 +590,15 @@ def main():
     adp.add_argument("doc_id", help="Document ID")
     adp.add_argument("--content", required=True, help="Text to append")
 
+    # insert-doc
+    idp = sub.add_parser("insert-doc", help="Insert a paragraph into an existing Google Doc")
+    idp.add_argument("doc_id", help="Document ID")
+    idp.add_argument("--content", required=True, help="Paragraph text to insert")
+    position = idp.add_mutually_exclusive_group(required=True)
+    position.add_argument("--after-heading", default=None, help="Insert after the paragraph with this exact text")
+    position.add_argument("--at", choices=["end"], default=None, help="Insert a new paragraph at the end")
+    position.add_argument("--index", type=int, default=None, help="Docs API body index to insert at")
+
     # share
     sh = sub.add_parser("share", help="Share file")
     sh.add_argument("file_id")
@@ -548,6 +640,14 @@ def main():
         create_doc(args.name, args.folder_id, args.content)
     elif args.command == "append-doc":
         append_doc(args.doc_id, args.content)
+    elif args.command == "insert-doc":
+        insert_doc(
+            args.doc_id,
+            args.content,
+            after_heading=args.after_heading,
+            at_end=(args.at == "end"),
+            index=args.index,
+        )
     elif args.command == "share":
         share_file(args.file_id, args.email, args.role, not args.no_notify)
     elif args.command == "move":

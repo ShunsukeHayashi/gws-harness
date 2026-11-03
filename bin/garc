@@ -92,6 +92,8 @@ Usage: garc <command> [subcommand] [options]
   drive upload       <local_path> [--folder-id <id>] [--convert]
   drive create-folder <name> [--parent-id <id>]
   drive create-doc   <name> [--folder-id <id>] [--content <text>]
+  drive append-doc   <doc_id> --content <text>
+  drive insert-doc   <doc_id> --content <text> (--after-heading <text> | --at end | --index <n>)
   drive share        <file_id> --email <email> [--role reader|writer]
   drive move         <file_id> --to <folder_id>
   drive delete       <file_id> [--permanent]
@@ -156,10 +158,16 @@ Usage: garc <command> [subcommand] [options]
   ingress verify   --queue-id <id>
   ingress stats
 
-━━━ Google Forms (Response Pipeline) ━━━━━━━━━━━━━━━━━━━━━━━━━━
+━━━ Google Forms ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   forms list                  List accessible Google Forms
+  forms get <id>              Read title, description, and items
+  forms create --title <text> Create an UNPUBLISHED draft (does not accept responses)
+  forms update <id>           Update title, description, or items (does not publish)
+  forms publish <id> --go     HUMAN GO ONLY. Publish or change responder access
   forms responses <id>        List form responses
   forms watch <id> --agent    Poll form and auto-enqueue new responses
+                              Do not pass --go unless a human explicitly said GO.
+                              --confirm is not a substitute for --go.
 
 ━━━ Daemon (Gmail Poller) ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   daemon start     [--interval <sec>] [--agent <id>]

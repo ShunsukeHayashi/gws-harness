@@ -17,6 +17,7 @@ garc_drive() {
     create-folder) garc_drive_create_folder "$@" ;;
     create-doc)    garc_drive_create_doc "$@" ;;
     append-doc)    garc_drive_append_doc "$@" ;;
+    insert-doc)    garc_drive_insert_doc "$@" ;;
     share)         garc_drive_share "$@" ;;
     move)          garc_drive_move "$@" ;;
     delete)        garc_drive_delete "$@" ;;
@@ -33,6 +34,7 @@ Subcommands:
   create-folder <name> [--parent-id <id>]
   create-doc    <name> [--folder-id <id>] [--content <text>]
   append-doc    <doc_id> --content <text>
+  insert-doc    <doc_id> --content <text> (--after-heading <text> | --at end | --index <n>)
   share         <file_id> --email <email> [--role reader|writer|commenter]
   move          <file_id> --to <folder_id>
   delete        <file_id> [--permanent]
@@ -42,6 +44,9 @@ Examples:
   garc drive search "Q1 report" --type doc
   garc drive upload ./report.pdf --folder-id 1xxxxxxxxx --convert
   garc drive create-doc "Meeting Notes 2026-04-15" --folder-id 1xxxxxxxxx
+  garc drive append-doc 1xxxxxxxxx --content "追記"
+  garc drive insert-doc 1xxxxxxxxx --content "正本: https://docs.google.com/document/d/abc" --after-heading "手順"
+  garc drive insert-doc 1xxxxxxxxx --content "末尾の段落" --at end
   garc drive share 1xxxxxxxxx --email colleague@co.com --role writer
 EOF
       return 1
@@ -190,6 +195,40 @@ garc_drive_append_doc() {
   [[ -z "${content}" ]] && { echo "Usage: garc drive append-doc <doc_id> --content <text>"; return 1; }
 
   python3 "${DRIVE_HELPER}" append-doc "${doc_id}" --content "${content}"
+}
+
+garc_drive_insert_doc() {
+  local doc_id="${1:-}"
+  shift || true
+  local content="" after="" at="" index=""
+
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --content|-c) content="$2"; shift 2 ;;
+      --after-heading) after="$2"; shift 2 ;;
+      --at) at="$2"; shift 2 ;;
+      --index) index="$2"; shift 2 ;;
+      *) doc_id="${doc_id:-$1}"; shift ;;
+    esac
+  done
+
+  [[ -z "${doc_id}" || -z "${content}" ]] && {
+    echo "Usage: garc drive insert-doc <doc_id> --content <text> (--after-heading <text> | --at end | --index <n>)"
+    return 1
+  }
+  if [[ -n "${after}" && -n "${at}" ]] || [[ -n "${after}" && -n "${index}" ]] || [[ -n "${at}" && -n "${index}" ]]; then
+    echo "Pass only one of --after-heading, --at end, or --index" >&2
+    return 1
+  fi
+  if [[ -z "${after}" && -z "${at}" && -z "${index}" ]]; then
+    echo "Pass --after-heading <text>, --at end, or --index <n>" >&2
+    return 1
+  fi
+
+  python3 "${DRIVE_HELPER}" insert-doc "${doc_id}" --content "${content}" \
+    ${after:+--after-heading "${after}"} \
+    ${at:+--at "${at}"} \
+    ${index:+--index "${index}"}
 }
 
 garc_drive_share() {

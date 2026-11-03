@@ -11,6 +11,8 @@ This document maps LARC's lark-cli commands to GARC's equivalent Google API call
 | Create folder | `drive files create_folder --data '...'` | `files().create(body={mimeType:'application/vnd.google-apps.folder'})` |
 | Upload file | `drive files upload` | `files().create(media_body=MediaFileUpload(...))` |
 | Export Doc | (n/a, native format) | `files().export_media(fileId=..., mimeType='text/plain')` |
+| Append text to a Doc | (n/a) | `documents().batchUpdate` `insertText` at end index − 1 (`garc drive append-doc`) |
+| Insert a paragraph | (n/a) | `documents().batchUpdate` `insertText` after a heading, at an index, or at the end (`garc drive insert-doc`) |
 
 ## Structured Data
 
@@ -45,6 +47,17 @@ This document maps LARC's lark-cli commands to GARC's equivalent Google API call
 | Create task | `task +create` | `tasks().insert(tasklist='@default', body=...)` |
 | Complete task | `task +complete` | `tasks().patch(tasklist=..., task=..., body={status:'completed'})` |
 
+## Forms
+
+| Operation | GARC | Google API |
+|-----------|------|------------|
+| Read title / description / items | `garc forms get <id>` | `forms().get(formId=...)` |
+| Create unpublished draft | `garc forms create --title ...` | `forms().create(body=..., unpublished=true)` — does **not** call `setPublishSettings` |
+| Update title, description, items | `garc forms update <id> ...` | `forms().batchUpdate` `updateFormInfo` / `updateItem` / `createItem` |
+| Publish or change responder access | `garc forms publish <id> --go` | `forms().setPublishSettings` `publishState` (`isPublished`, `isAcceptingResponses`) |
+
+**Human GO only.** `garc forms publish` without `--go` exits 2 and does not call the API. `--confirm` is not a substitute. Do not pass `--go` unless a human explicitly approved publishing or a responder-access change. Creating or updating a form never publishes it.
+
 ## OAuth Scope Reference
 
 ### Minimal Scopes by Operation Type
@@ -68,6 +81,10 @@ This document maps LARC's lark-cli commands to GARC's equivalent Google API call
 | Read Contacts | `contacts.readonly` |
 | Write Contacts | `contacts` |
 | Google Chat (bot) | `chat.messages` |
+| Read a Form | `forms.body.readonly` |
+| Create or edit a Form (draft) | `forms.body` |
+| Publish a Form / responder access (human `--go` only) | `forms.body` |
+| Read Form responses | `forms.responses.readonly` |
 
 All Google OAuth scopes are prefixed with `https://www.googleapis.com/auth/`.
 
@@ -80,5 +97,6 @@ All Google OAuth scopes are prefixed with `https://www.googleapis.com/auth/`.
 | Gmail | 250 quota units/user/second | Send = 100 units |
 | Google Calendar | 1,000,000 req/day | |
 | Google Tasks | 50,000 req/day | |
+| Google Forms | project quota in Cloud Console | Create stays unpublished unless a human passes `--go` |
 
 GARC implements basic retry with exponential backoff via `google-api-python-client`'s built-in retry mechanism.

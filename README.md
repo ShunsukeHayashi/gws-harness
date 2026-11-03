@@ -45,7 +45,8 @@ You need a Google Cloud project with the following APIs enabled:
 | Gmail API | `gmail.googleapis.com` | Email send/receive/search |
 | Google Calendar API | `calendar-json.googleapis.com` | Event management |
 | Google Tasks API | `tasks.googleapis.com` | Task management |
-| Google Docs API | `docs.googleapis.com` | Document creation |
+| Google Docs API | `docs.googleapis.com` | Document creation and body editing |
+| Google Forms API | `forms.googleapis.com` | Draft forms. Publishing is human-GO-only |
 | Google People API | `people.googleapis.com` | Contacts, directory search |
 
 Step-by-step setup: [`docs/google-cloud-setup.md`](docs/google-cloud-setup.md)
@@ -137,8 +138,39 @@ garc drive list
 garc drive search "Q1 report" --type doc
 garc drive upload ./report.pdf
 garc drive create-doc "Meeting Notes 2026-04-20"
+garc drive append-doc 1xxxxx --content "追記"
+garc drive insert-doc 1xxxxx --content "正本: https://docs.google.com/document/d/abc" --after-heading "手順"
+garc drive insert-doc 1xxxxx --content "末尾の段落" --at end
 garc drive download --file-id 1xxxxx --output ./local.txt
 ```
+
+`append-doc` appends raw text at the end of the body (`documents.batchUpdate` `insertText`).
+`insert-doc` inserts a paragraph after a heading, at a body index, or at the end.
+
+### Google Forms
+
+```bash
+garc forms get <form_id>                         # title, description, items
+garc forms create --title "SOP check" --description "Draft"
+garc forms update <form_id> --title "SOP check" --add-item "Owner"
+```
+
+`create` always requests an **unpublished draft** (`forms.create?unpublished=true`).
+`update` changes title, description, and items only. Neither command publishes the form or opens it to responders.
+
+Publishing, or any change to responder access (`isPublished` / `isAcceptingResponses`), is a **human-GO-only** operation. garc refuses it unless a human passes `--go`. `--confirm` is not a substitute. Agents must not pass `--go`.
+
+```bash
+# Refuses with exit code 2 and does not call the API:
+garc forms publish <form_id>
+
+# Only after an explicit human GO:
+garc forms publish <form_id> --go
+# Stop accepting responses while leaving the form published:
+garc forms publish <form_id> --go --published true --accepting false
+```
+
+Scopes: `forms.body.readonly` (read), `forms.body` (create/update/publish), `forms.responses.readonly` (responses). Enable `forms.googleapis.com`. `garc status` and `garc bootstrap` report Forms API enablement when a token is present.
 
 ### Google Sheets
 
@@ -240,8 +272,7 @@ The following are known gaps in v0.1.0. They are planned for future releases.
 | **Service Account / Domain-wide Delegation not supported** | Enterprise deployments requiring headless bot identity (not user OAuth) are not yet supported | v0.2 |
 | **No audit log** | Operations are not logged to Admin SDK / Google Cloud Logging | v0.2 |
 | **`garc auth revoke` not implemented** | Token revocation requires manual deletion of `~/.garc/token.json` | v0.2 |
-| **Existing Google Docs editing limited** | `drive create-doc` creates new docs; editing body of existing Docs is not implemented | v0.3 |
-| **Google Forms → auto-enqueue not implemented** | Form submissions cannot automatically create queue tasks | v0.3 |
+| **Form publish is human-GO-only** | `garc forms publish` changes who can respond. It refuses unless a human passes `--go`. Agents must not pass `--go`. | by design |
 | **Single organization only** | Multi-tenant (multiple Google Workspace domains) is not supported | v0.3+ |
 | **macOS only (daemon)** | `daemon install` generates a macOS launchd plist. Linux systemd not yet supported | v0.3 |
 
@@ -256,9 +287,7 @@ The following are known gaps in v0.1.0. They are planned for future releases.
 - `garc auth revoke`
 
 ### v0.3 — Workflow expansion
-- Google Docs body editing
-- Google Forms → ingress pipeline
-- Linux systemd daemon support
+- Linux systemd daemon support (done in 0.2.0)
 - GCP Secret Manager for credentials
 
 ### v0.4 — Multi-agent
