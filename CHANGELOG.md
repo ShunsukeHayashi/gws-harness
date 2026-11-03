@@ -106,6 +106,13 @@ All 17 findings from the v0.1.0 operational readiness audit have been resolved.
 
 ## Unreleased
 
+### Added
+
+- **Google Forms draft CRUD**: `garc forms get`, `garc forms create` (unpublished draft via `forms.create?unpublished=true`), `garc forms update` (title, description, items through `forms.batchUpdate`). These commands never call `forms.setPublishSettings`.
+- **Human-GO publish**: `garc forms publish <id> --go` is the only path that changes `publishState` (`isPublished` / `isAcceptingResponses`). Without `--go` the command exits 2 and does not call the API. `--confirm` is not a substitute. Documented as a human-GO-only operation.
+- **Forms scopes and enablement**: `forms.body`, `forms.body.readonly`, and `forms.responses.readonly` on the scope map, gate policy (`publish_form` = approval), and runtime scope lists. `garc setup check`, `garc status`, and `garc bootstrap` probe Forms API enablement (`forms.googleapis.com`).
+- **Docs paragraph insert**: `garc drive insert-doc` inserts a paragraph after a heading, at a body index, or at the end via `documents.batchUpdate` `insertText`. End-of-body raw append remains `garc drive append-doc` (already present).
+
 ### v0.3 — Stability (planned)
 - GCP Secret Manager integration for credential management
 - Agent-to-agent approval chains

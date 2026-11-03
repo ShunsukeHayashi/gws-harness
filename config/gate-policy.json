@@ -12,7 +12,9 @@
         "read_tasks",
         "read_contacts",
         "read_chat",
-        "read_crm"
+        "read_crm",
+        "read_form",
+        "read_form_responses"
       ]
     },
     "preview": {
@@ -34,7 +36,9 @@
         "delete_event",
         "invite_attendees",
         "write_report",
-        "send_report"
+        "send_report",
+        "create_form",
+        "update_form"
       ]
     },
     "approval": {
@@ -44,7 +48,8 @@
         "manage_email",
         "manage_contacts",
         "create_expense",
-        "submit_approval"
+        "submit_approval",
+        "publish_form"
       ]
     }
   },
@@ -65,8 +70,9 @@
     "approval (gate)": [
       "create_expense",
       "submit_approval",
-      "manage_drive",
-      "manage_email"
+        "manage_drive",
+        "manage_email",
+        "publish_form"
     ]
   }
 }

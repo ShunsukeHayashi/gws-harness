@@ -112,6 +112,16 @@ garc_bootstrap() {
   _garc_build_context "${workspace_dir}" "${agent_id}"
 
   echo ""
+  echo "Forms API enablement (forms.googleapis.com):"
+  local token_file="${GARC_TOKEN_FILE:-${HOME}/.garc/token.json}"
+  if [[ -f "${token_file}" ]]; then
+    python3 "${GARC_DIR}/scripts/garc-setup.py" check-forms || true
+  else
+    echo "  skipped (no auth token). Enable forms.googleapis.com before 'garc forms create'."
+    echo "  Publish / responder access is human-GO-only: garc forms publish <id> --go"
+  fi
+
+  echo ""
   echo "✅ Bootstrap complete."
   echo "   Context: ${workspace_dir}/AGENT_CONTEXT.md"
   echo ""
@@ -269,4 +279,14 @@ garc_status() {
   else
     echo "Context: ❌ not bootstrapped (run: garc bootstrap --agent ${agent_id})"
   fi
+
+  echo ""
+  echo "API enablement:"
+  echo "  Required: Drive, Sheets, Gmail, Calendar, Tasks, Docs, People, Forms (forms.googleapis.com)"
+  if [[ -f "${token_file}" ]]; then
+    python3 "${GARC_DIR}/scripts/garc-setup.py" check || true
+  else
+    echo "  API probe: skipped (no auth token). Run 'garc setup check' after login."
+  fi
+  echo "  Forms publish / responder access is human-GO-only: garc forms publish <id> --go"
 }

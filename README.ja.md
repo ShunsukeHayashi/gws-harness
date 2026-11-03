@@ -84,10 +84,37 @@ garc auth suggest "<タスク>"       # OAuthスコープ推定
 garc auth check [--profile <p>]    # 現在のトークンスコープ確認
 garc auth login [--profile <p>]    # OAuthフロー起動
 garc heartbeat                     # システム状態をSheetsに記録
-garc status                        # 設定とヘルスチェック表示
+garc status                        # 設定とヘルスチェック表示（Forms API の有効化も表示）
 garc kg build/query/show           # ナレッジグラフ操作
 garc ingress enqueue/list/next     # キュー管理
+
+# Docs 本文（既存ドキュメント）
+garc drive append-doc <doc_id> --content "追記"
+garc drive insert-doc <doc_id> --content "正本: <Docs URL>" --after-heading "手順"
+garc drive insert-doc <doc_id> --content "末尾の段落" --at end
+
+# Forms（下書きの作成・読取・更新。公開は人間の GO のみ）
+garc forms get <form_id>
+garc forms create --title "SOP確認" --description "下書き"
+garc forms update <form_id> --title "SOP確認" --add-item "担当"
+garc forms publish <form_id>            # 拒否される（exit 2）。API は呼ばない
+garc forms publish <form_id> --go       # 人間が明示的に GO したときだけ
 ```
+
+## フォーム公開は人間の GO のみ
+
+`garc forms create` / `update` は未公開の下書きだけを扱います。公開、または回答できる相手・回答受付（`isPublished` / `isAcceptingResponses`）の変更は、人間が `--go` を付けたときだけ実行されます。`--confirm` は代わりになりません。エージェントが `--go` を付けてはいけません。
+
+必要なスコープ:
+
+| 操作 | スコープ |
+|------|----------|
+| フォームを読む | `forms.body.readonly` |
+| 下書きの作成・更新、および人間 GO 後の公開 | `forms.body` |
+| 回答の読取 | `forms.responses.readonly` |
+| 既存 Docs への段落挿入 | `documents` + `drive.file` |
+
+Google Cloud で `forms.googleapis.com` を有効にしてください。`garc status` と `garc bootstrap` はトークンがあるとき Forms API の有効化を確認します。
 
 ## LARCとの関係
 

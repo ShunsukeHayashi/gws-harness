@@ -14,10 +14,10 @@
 - [ ] Python 3.10 以上がインストールされている (`python3 --version`)
 - [ ] Google アカウントを持っている（Gmail / Drive が使える状態）
 - [ ] Google Cloud Console でプロジェクトを作成済み
-- [ ] 下記7つのAPIを有効化済み（[詳細手順](google-cloud-setup.md)）
+- [ ] 下記のAPIを有効化済み（[詳細手順](google-cloud-setup.md)）。Forms を使う場合は Google Forms API も有効化する
 - [ ] OAuth 2.0 クライアント ID を作成し `~/.garc/credentials.json` に保存済み
 
-### 必須 API（7種）
+### 必須 API（8種）
 
 | API | サービス名 |
 |-----|---------|
@@ -27,6 +27,7 @@
 | Google Calendar API | `calendar-json.googleapis.com` |
 | Google Tasks API | `tasks.googleapis.com` |
 | Google Docs API | `docs.googleapis.com` |
+| Google Forms API | `forms.googleapis.com` |
 | Google People API | `people.googleapis.com` |
 
 > **APIを有効化しないと** `googleapiclient.errors.HttpError: 403 API not enabled` が出ます。

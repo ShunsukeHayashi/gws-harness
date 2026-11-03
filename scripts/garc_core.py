@@ -39,6 +39,9 @@ ALL_SCOPES = [
     "https://www.googleapis.com/auth/contacts.readonly",
     "https://www.googleapis.com/auth/directory.readonly",
     "https://www.googleapis.com/auth/chat.messages",
+    "https://www.googleapis.com/auth/forms.body",
+    "https://www.googleapis.com/auth/forms.body.readonly",
+    "https://www.googleapis.com/auth/forms.responses.readonly",
 ]
 
 PROFILE_SCOPES = {
@@ -50,6 +53,8 @@ PROFILE_SCOPES = {
         "https://www.googleapis.com/auth/tasks.readonly",
         "https://www.googleapis.com/auth/contacts.readonly",
         "https://www.googleapis.com/auth/documents",
+        "https://www.googleapis.com/auth/forms.body.readonly",
+        "https://www.googleapis.com/auth/forms.responses.readonly",
     ],
     "writer": [
         "https://www.googleapis.com/auth/drive.file",
@@ -59,6 +64,8 @@ PROFILE_SCOPES = {
         "https://www.googleapis.com/auth/gmail.readonly",
         "https://www.googleapis.com/auth/calendar",
         "https://www.googleapis.com/auth/tasks",
+        "https://www.googleapis.com/auth/forms.body",
+        "https://www.googleapis.com/auth/forms.responses.readonly",
     ],
     "backoffice_agent": ALL_SCOPES,
     "admin": ALL_SCOPES + [

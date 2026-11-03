@@ -352,6 +352,47 @@
       "identity": "user_access_token",
       "gate": "preview",
       "description": "Write analytics data to Sheets"
+    },
+    "read_form": {
+      "scopes": [
+        "https://www.googleapis.com/auth/forms.body.readonly",
+        "https://www.googleapis.com/auth/drive.readonly"
+      ],
+      "identity": "user_access_token",
+      "gate": "none",
+      "description": "Read a Google Form title, description, and items"
+    },
+    "create_form": {
+      "scopes": [
+        "https://www.googleapis.com/auth/forms.body"
+      ],
+      "identity": "user_access_token",
+      "gate": "preview",
+      "description": "Create an unpublished draft Google Form. Does not publish or accept responses."
+    },
+    "update_form": {
+      "scopes": [
+        "https://www.googleapis.com/auth/forms.body"
+      ],
+      "identity": "user_access_token",
+      "gate": "preview",
+      "description": "Update a Google Form title, description, or items. Does not publish."
+    },
+    "publish_form": {
+      "scopes": [
+        "https://www.googleapis.com/auth/forms.body"
+      ],
+      "identity": "user_access_token",
+      "gate": "approval",
+      "description": "HUMAN GO ONLY. Publish a form or change responder access / accepting responses. Requires garc forms publish --go. Do not pass --go on behalf of a user."
+    },
+    "read_form_responses": {
+      "scopes": [
+        "https://www.googleapis.com/auth/forms.responses.readonly"
+      ],
+      "identity": "user_access_token",
+      "gate": "none",
+      "description": "Read Google Form responses"
     }
   },
   "profiles": {
@@ -364,7 +405,9 @@
         "https://www.googleapis.com/auth/calendar.readonly",
         "https://www.googleapis.com/auth/tasks.readonly",
         "https://www.googleapis.com/auth/contacts.readonly",
-        "https://www.googleapis.com/auth/directory.readonly"
+        "https://www.googleapis.com/auth/directory.readonly",
+        "https://www.googleapis.com/auth/forms.body.readonly",
+        "https://www.googleapis.com/auth/forms.responses.readonly"
       ],
       "description": "Read-only access to all GWS resources"
     },
@@ -379,7 +422,9 @@
         "https://www.googleapis.com/auth/calendar",
         "https://www.googleapis.com/auth/tasks",
         "https://www.googleapis.com/auth/contacts.readonly",
-        "https://www.googleapis.com/auth/directory.readonly"
+        "https://www.googleapis.com/auth/directory.readonly",
+        "https://www.googleapis.com/auth/forms.body",
+        "https://www.googleapis.com/auth/forms.responses.readonly"
       ],
       "description": "Write access to owned resources and send email"
     },
@@ -393,7 +438,9 @@
         "https://www.googleapis.com/auth/tasks",
         "https://www.googleapis.com/auth/contacts",
         "https://www.googleapis.com/auth/people",
-        "https://www.googleapis.com/auth/admin.directory.user.readonly"
+        "https://www.googleapis.com/auth/admin.directory.user.readonly",
+        "https://www.googleapis.com/auth/forms.body",
+        "https://www.googleapis.com/auth/forms.responses.readonly"
       ],
       "description": "Full admin access across all GWS resources"
     },
@@ -410,7 +457,9 @@
         "https://www.googleapis.com/auth/tasks",
         "https://www.googleapis.com/auth/contacts.readonly",
         "https://www.googleapis.com/auth/directory.readonly",
-        "https://www.googleapis.com/auth/chat.messages"
+        "https://www.googleapis.com/auth/chat.messages",
+        "https://www.googleapis.com/auth/forms.body",
+        "https://www.googleapis.com/auth/forms.responses.readonly"
       ],
       "description": "Back-office automation profile for office-work agents"
     }
@@ -765,6 +814,41 @@
       "write metrics",
       "データ更新",
       "kpi更新"
+    ],
+    "read_form": [
+      "read form",
+      "get form",
+      "form title",
+      "フォーム確認",
+      "フォームを読む"
+    ],
+    "create_form": [
+      "create form",
+      "draft form",
+      "new form",
+      "google form",
+      "フォーム作成",
+      "フォームを作"
+    ],
+    "update_form": [
+      "update form",
+      "edit form",
+      "フォーム更新",
+      "フォームを編集"
+    ],
+    "publish_form": [
+      "publish form",
+      "publish the form",
+      "responder access",
+      "accepting responses",
+      "フォームを公開",
+      "回答を受け付け"
+    ],
+    "read_form_responses": [
+      "form responses",
+      "form response",
+      "フォームの回答",
+      "フォーム回答"
     ]
   }
 }

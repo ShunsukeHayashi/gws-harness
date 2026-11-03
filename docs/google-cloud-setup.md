@@ -4,7 +4,7 @@
 
 Google Cloud Console (https://console.cloud.google.com/) で以下を有効化してください。
 
-### 必須 API（6種）
+### 必須 API（7種）
 
 | API名 | サービス名 | 用途 |
 |-------|-----------|------|
@@ -13,7 +13,8 @@ Google Cloud Console (https://console.cloud.google.com/) で以下を有効化�
 | **Gmail API** | `gmail.googleapis.com` | メール送受信・承認通知 |
 | **Google Calendar API** | `calendar-json.googleapis.com` | 予定管理・会議調整 |
 | **Google Tasks API** | `tasks.googleapis.com` | タスク管理 |
-| **Google Docs API** | `docs.googleapis.com` | ドキュメント作成・編集 |
+| **Google Docs API** | `docs.googleapis.com` | ドキュメント作成・本文編集（`append-doc` / `insert-doc`） |
+| **Google Forms API** | `forms.googleapis.com` | フォームの下書き作成・読取・更新。公開と回答受付の変更は人間の GO のみ |
 
 ### 推奨 API（2種）
 
@@ -77,4 +78,16 @@ garc auth login --profile backoffice_agent
 
 garc status
 # → 全項目が ✅ になることを確認
+# → トークンがある場合は Forms API (forms.googleapis.com) の有効化も確認する
 ```
+
+## フォームの公開は人間の GO のみ
+
+`garc forms create` は未公開の下書きだけを作ります。公開、または回答できる人・回答受付の変更は、人間が明示的に `--go` を付けたときだけ実行されます。
+
+```bash
+garc forms publish <form_id>          # 拒否（exit 2）。API は呼ばない
+garc forms publish <form_id> --go     # 人間が GO したあとにだけ実行
+```
+
+`--confirm` は `--go` の代わりになりません。エージェントが `--go` を付けてはいけません。
